@@ -20,7 +20,9 @@ jobs:
         with:
           python-version: '3.x'
       - name: Patch proposal source
-        run: python scripts/apply_loftie_eaton_preliminary_analysis.py
+        run: |
+          python scripts/apply_loftie_eaton_preliminary_analysis.py
+          python scripts/fix_loftie_bib.py
       - name: Commit patched proposal
         run: |
           if ! git diff --quiet; then
