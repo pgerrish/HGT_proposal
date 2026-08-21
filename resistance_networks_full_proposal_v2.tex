@@ -1,0 +1,558 @@
+\documentclass[12pt,a4paper]{article}
+
+% Compiles with pdfLaTeX, XeLaTeX, or LuaLaTeX. XeLaTeX/LuaLaTeX use
+% Times New Roman when installed; pdfLaTeX uses a Times-compatible font.
+\usepackage[a4paper,margin=0.5in]{geometry}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage{mathptmx}
+\else
+  \usepackage{fontspec}
+  \IfFontExistsTF{Times New Roman}{\setmainfont{Times New Roman}}{\setmainfont{TeX Gyre Termes}}
+\fi
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{booktabs,tabularx,array,multirow,longtable}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.45em}
+\setlength{\baselineskip}{1.0\baselineskip}
+\setlist[itemize]{leftmargin=1.4em,itemsep=0.15em,topsep=0.2em}
+\setlist[enumerate]{leftmargin=1.6em,itemsep=0.15em,topsep=0.2em}
+\titleformat{\section}{\bfseries\large}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\bfseries\normalsize}{\thesubsection.}{0.5em}{}
+\titleformat{\subsubsection}{\itshape\normalsize}{\thesubsubsection.}{0.5em}{}
+\titlespacing*{\section}{0pt}{0.9em}{0.35em}
+\titlespacing*{\subsection}{0pt}{0.7em}{0.25em}
+\titlespacing*{\subsubsection}{0pt}{0.5em}{0.2em}
+\captionsetup{font=small,labelfont=bf}
+\setlength{\headheight}{15pt}
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Universal properties of plasmid evolution}
+\rhead{Resistance Networks}
+\cfoot{\thepage\ / \pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.3pt}
+
+\newcommand{\Rwithin}{R_{0,\mathrm{within}}}
+\newcommand{\Rbetween}{R_{0,\mathrm{between}}}
+\newcommand{\RpARG}{R_{0,\mathrm{pARG}}}
+\newcommand{\VHGT}{V_{\mathrm{HGT}}}
+\newcommand{\Rtail}{R_{\mathrm{tail}}}
+\newcommand{\Prob}{\Pr}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Var}{\mathrm{Var}}
+\newcommand{\Cov}{\mathrm{Cov}}
+\newcommand{\dd}{\,\mathrm{d}}
+
+\begin{document}
+
+% ================================================================
+% TITLE PAGE (1 page)
+% ================================================================
+\thispagestyle{empty}
+\begin{center}
+{\Large\bfseries Universal properties of plasmid evolution\\[0.2em]
+and robust risk forecasting for preemptive pARG intervention}\par
+\vspace{0.8em}
+{\large Submitted in response to Wellcome Leap Solicitation for Resistance Networks}\par
+\vspace{1.2em}
+\end{center}
+
+\begin{tabularx}{\textwidth}{@{}p{0.24\textwidth}X@{}}
+\textbf{Principal Investigator} & Philip J. Gerrish\\
+\textbf{Submitting organization} & University of New Mexico, Department of Biology\\
+\textbf{Contact} & pgerrish@unm.edu; +1 505 695 2770\\[0.35em]
+\textbf{Co-Principal Investigator} & M. Gabriela M. Gomes\\
+\textbf{Organization} & University of Strathclyde, Department of Mathematics and Statistics, Glasgow, UK\\
+\textbf{Contact} & gabriela.gomes@strath.ac.uk; +44 141 548 3804\\[0.35em]
+\textbf{Period of performance} & 36 months\\
+\textbf{Total cost} & \$0.840 M (draft; to be reconciled with institutional budgets and certified indirect rates)\\
+\textbf{Primary program alignment} & Thrust 1: multiscale transmission modeling of antibiotic-amplified pARGs; interfaces to Thrusts 2 and 3\\
+\end{tabularx}
+
+\vfill
+\textbf{Project premise.} Plasmids carrying antibiotic-resistance genes (pARGs) transmit through bacterial networks by a process that is simultaneously evolutionary and epidemiological. Existing mechanistic models correctly represent this complexity, but they typically require many system-specific parameters whose values vary across hosts, plasmids, environments, and antibiotic regimes. We propose a complementary top-down strategy: identify the macroscopic statistical laws that survive this microscopic variability, use them to constrain a heterogeneous multiscale transmission model, and test whether those constraints improve prediction of whether a pARG lies above or below the epidemic threshold, $\RpARG=1$.
+
+\textbf{Central hypothesis.} The evolutionary value of horizontal escape from a clonal background is generically heavy-tailed, and its interaction with ecological heterogeneity produces a small set of observable, falsifiable signatures in the sizes, durations, spatial reaches, and host-switching histories of pARG transmission events. These signatures can be used as low-dimensional regularizers for inference of $\Rwithin$, $\Rbetween$, and $\RpARG$, thereby improving threshold classification when direct observations are sparse.
+
+\textbf{Primary deliverable.} A validated, open-source forecasting framework that takes standardized longitudinal plasmid--host linkage data, genomic signatures, antibiotic-exposure metadata, and community-surveillance measurements as input and returns (i) posterior distributions for $\Rwithin$, $\Rbetween$, and $\RpARG$; (ii) calibrated probability that $\RpARG>1$; (iii) a complementary tail-risk score for rare high-consequence transfer episodes; (iv) ranked intervention sensitivities; and (v) explicit uncertainty and out-of-distribution diagnostics. The prespecified program-facing target is at least 80\% balanced predictive accuracy for classification of whether antibiotic-amplified pARGs exhibit epidemic-like transmission across the five focal sites. We will additionally provide a program-facing common data schema, reference event definitions, synthetic benchmark datasets, and a versioned modeling pipeline designed to accept measurements generated by Thrusts 1B, 1C, and 2 and to return model outputs in a form usable by Thrust 3.
+
+\newpage
+
+% ================================================================
+% EXECUTIVE SUMMARY (target up to 5 pages)
+% ================================================================
+\section*{Executive Summary}
+
+\textbf{Problem and opportunity.} Resistance Networks asks whether plasmid-mediated antibiotic resistance can be treated as a transmissible process whose epidemic potential can be measured, predicted, and pushed below threshold. The program defines a concrete target: determine, with 80\% balanced predictive accuracy, whether antibiotic-amplified pARGs have $R_0>1$ within and between gut bacterial networks. That goal creates an inference problem in a regime where transmission events are rare, partially observed, and heterogeneous. A newly acquired pARG can expand clonally with its bacterial host, move horizontally to a new chromosomal background, pass between individuals, be lost, or be altered by selection on plasmid and host. These processes are influenced by conjugation rate, plasmid cost, host range, donor and recipient abundance, antibiotic exposure, ecological turnover, spatial contact, compensatory evolution, and measurement sensitivity. Mechanistic models are indispensable for interpreting particular systems, but their predictive uncertainty can become dominated by the need to estimate many context-dependent parameters \citep{dewan2023,hernandez2021,brockhurst2022}.
+
+Our proposal asks a different but complementary question: \emph{which features of pARG transmission remain predictable after the microscopic details have changed?} Our working hypothesis is that the answer is encoded in the tails of the transmission process. In ongoing theoretical work on the evolution of recombination and horizontal genetic exchange, Gerrish has shown that the time-integrated selective value of escaping a clonal genetic background can become heavy-tailed because large benefits arise near cancellation between opposing fitness components. In the simplest realization, if $X$ denotes the plasmid-associated fitness contribution and $Y$ the chromosomal contribution, the integrated advantage of linkage breaking contains a denominator proportional to $|\Delta X+\Delta Y|$. Near-cancellation makes this quantity large even when the underlying fitness differences themselves are ordinary, continuous random variables. Under broad regularity conditions the resulting complementary cumulative distribution has the asymptotic form
+\begin{equation}
+\Prob(\VHGT>v)\sim C_V v^{-1},
+\label{eq:VHGTtail}
+\end{equation}
+where $\VHGT$ is the realized, time-integrated selective value of horizontal escape and $C_V$ is a system-dependent tail weight. The exponent is predicted; the amplitude and cutoff are empirical. This is a deliberately strong and falsifiable claim.
+
+The proposal does \emph{not} replace the program's definition of $R_0$ with a new quantity. Instead, $R_0$ remains the primary epidemiological threshold. The heavy-tail theory supplies additional structure for the offspring and event-size distributions from which $R_0$ must be inferred. This distinction is crucial. A heavy-tailed distribution of evolutionary opportunity does not, by itself, imply that $R_0$ is undefined. Real biological systems have finite populations, finite observation windows, physiological limits, and ecological cutoffs. Our model therefore treats Eq.~\eqref{eq:VHGTtail} as an intermediate asymptotic over a finite scaling range and estimates its cutoff explicitly. The program-facing output remains $\Prob(\RpARG>1\mid\mathrm{data})$, with a separate tail-risk diagnostic that quantifies how much transmission risk is concentrated in rare episodes.
+
+\textbf{A synthesis of evolutionary and epidemiological heterogeneity.} Gomes's work on heterogeneous epidemic systems provides the complementary component. If individuals or bacterial backgrounds differ in susceptibility or exposure, transmission is a selective process: high-risk types are infected or colonized first, changing the composition of the remaining susceptible pool. If $z$ is a latent recipient-risk variable and $q_0(z)$ its initial density, then under cumulative transfer pressure $H(t)$,
+\begin{equation}
+q_t(z)=\frac{q_0(z)e^{-zH(t)}}{\int q_0(u)e^{-uH(t)}\dd u}.
+\label{eq:selection}
+\end{equation}
+The mean risk among remaining recipients therefore declines even if the microscopic transfer mechanism is unchanged. This ``remodelling selection'' can make early and late transmission hazards differ substantially and provides a principled way to infer latent heterogeneity from longitudinal observations \citep{gomes2004,gomes2022,gomes2024,elie2022}. In bacterial networks, $z$ can absorb variation in recipient permissiveness, donor contact, local ecology, and other unobserved multiplicative risk factors. Antibiotic exposure can alter both $H(t)$ and the distribution of donor and recipient states.
+
+Our synthesis has two tails and two directions of inference. Gerrish's framework uses the distribution of successful horizontal escapes to infer the evolutionary payoff landscape; Gomes's framework uses selective depletion in longitudinal data to infer hidden ecological heterogeneity. Together they distinguish three situations that can look similar in sparse data: a transfer event can be rare because encounters are rare, because successful evolutionary escape is rare, or because both are rare. Those cases imply different interventions.
+
+\textbf{Research plan.} We organize the project into three tightly coupled activity areas.
+
+\textbf{Activity Area 1: Universal HGT theory and falsification.} We will derive the mapping from the evolution-of-sex framework to plasmid-mediated HGT, including conjugation, vertical inheritance, plasmid loss, modifier dissociation, finite population size, finite observation time, and heterogeneous recipient backgrounds. We will specify conditions under which the $v^{-1}$ tail is expected, derive finite-size and finite-time cutoffs, and identify alternative signatures for light-tailed or mixed regimes. We will test the predicted tail against synthetic data and available plasmid-transfer datasets, then prospectively against data generated by Resistance Networks performers. The key scientific output is not merely a fitted Pareto distribution; it is a set of derivations showing when the exponent should and should not occur.
+
+\textbf{Activity Area 2: Multiscale $R_0$ inference with remodelling selection.} We will build a hierarchical model with two coupled transmission scales: $\Rwithin$, describing acquisition of a focal pARG by new bacterial chromosomal backgrounds within a gut, and $\Rbetween$, describing establishment in close-contact hosts. The model will use linkage-preserving longitudinal observations to separate horizontal acquisition from clonal expansion. Latent susceptibility/exposure heterogeneity will evolve according to a selection equation related to Eq.~\eqref{eq:selection}. Heavy-tail structure from Activity Area 1 will enter as a regularizer on the distribution of event-specific transmission opportunity, with competing light-tailed models fitted in parallel. The model will return posterior distributions rather than point estimates and will explicitly represent detection limits, missing samples, linkage error, and host-level random effects.
+
+\textbf{Activity Area 3: Genomic, cohort, and surveillance validation; intervention ranking.} We will freeze prespecified prediction rules and evaluate them on held-out or prospective program data. The primary classification target is whether $\RpARG>1$, scored by balanced accuracy, sensitivity, specificity, calibration, Brier score, and area under the precision--recall curve. In direct response to the abstract feedback, we will test the model at three empirically distinct levels. First, sequence-derived genomic signatures of plasmid host range, compatibility, mobilization potential, and bacterial background will be used as covariates or priors and tested for incremental predictive value. Second, longitudinal single-cell/linkage-preserving cohort data will test predicted new pARG--chromosome associations and their temporal ordering before, during, and after antibiotic exposure. Third, wastewater and matched isolate surveillance from the same catchments will provide an independent test of threshold classification that is not used to fit the cohort model. We will compare the universal-tail model with nested baselines that omit heavy-tail structure, omit remodelling selection, or use conventional parametric heterogeneity. We will then compute intervention sensitivities for conjugation rate, donor amplification, recipient susceptibility/protection, plasmid loss, shedding, and between-host establishment.
+
+\textbf{Milestones and decision gates.} By month 3 we will have prespecified the event definitions, $R_0$ decomposition, tail statistics, candidate distributions, and validation metrics. By month 6 we will release a synthetic-data benchmark and reference Julia implementation. By month 9 we will deliver a heavy-tail versus light-tail inference module with finite-cutoff estimation and observation error. By month 12 we will complete a measurement-priority report that quantifies which additional observations most reduce uncertainty in threshold classification. In year 2 we will fit emerging program data and make blinded or time-forward predictions wherever the program data flow allows. At the end of year 2 we will pass a formal continuation gate only if at least one of two conditions holds: (i) the universal-tail model improves held-out predictive performance over light-tailed baselines, or (ii) the falsification analysis identifies a reproducible alternative regime that materially improves $R_0$ prediction. In year 3 we will validate threshold classification and intervention ranking, targeting the program's 80\% balanced-accuracy benchmark.
+
+\textbf{Risk management.} The strongest claim---a universal heavy-tail exponent---is deliberately separable from the primary deliverable. If the $v^{-1}$ law is rejected, the project still yields a multiscale, heterogeneity-aware $R_0$ estimator and a quantitative statement of where the universality class fails. If pARG acquisition events are too sparse for direct tail fitting, we will use partial pooling across plasmid--host contexts and focus prediction on the likelihood and cutoff parameters rather than unconstrained tail exponents. If linkage error makes horizontal transfer difficult to distinguish from clonal expansion, we will propagate linkage uncertainty and define conservative event counts. If between-host observations are sparse, we will infer $\Rbetween$ jointly with external household or surveillance constraints and report wider uncertainty rather than overstate identifiability.
+
+\textbf{Direct response to abstract feedback.} The full proposal makes the requested empirical tests and cross-program standardization part of the core technical plan rather than an optional downstream activity. Cohort-derived genomic signatures and longitudinal pARG--host linkages are incorporated in Sections~\ref{sec:genomic_validation} and \ref{sec:obsmodel}; wastewater and isolate surveillance are reserved for independent validation in Section~\ref{sec:wastewater_validation}. Section~\ref{sec:core} specifies a common event schema, model-input contract, reference implementation, reproducibility requirements, and data/model sharing plan. These additions create a clean separation between \emph{model construction} from cohort measurements and \emph{model challenge} using community surveillance.
+
+\textbf{Program integration and modeling-core role.} The project is intentionally executable by a two-PI modeling team, but we are prepared to serve as a program-level modeling core if selected to do so. Thrusts 1B, 1C, and 2 generate the empirical measurements; our role is to turn harmonized measurements into transmission-event probabilities, $R_0$ components, uncertainty, and prospective predictions. We will provide simulation tools, likelihood modules, a common data dictionary, versioned model-input/output schemas, synthetic reference datasets, and standardized derived quantities to other performers. We do not propose to duplicate single-cell isolation, long-read sequencing, or wet-lab bioinformatics cores. Instead, we will work against program-agreed reference panels and quality metrics so that measurements from whichever core(s) Wellcome Leap selects enter the same analysis contract. Thrust 3 interventions perturb model parameters; our framework predicts which perturbations should reduce $\Rwithin$, $\Rbetween$, or the probability of threshold crossing most strongly.
+
+\textbf{Why this team.} Gerrish contributes population-genetic theory of adaptation, clonal interference, recombination, and path-ensemble approaches to evolutionary prediction \citep{gerrish1998,devisser1999,gerrish2012}. Gomes contributes theory and inference for heterogeneous epidemic systems in which transmission itself remodels the susceptible population \citep{gomes2004,gomes2022,gomes2024}. The collaboration is designed around the central conceptual difficulty in pARG epidemiology: transmission changes both the genetic associations under selection and the ecological composition of available hosts. The two theories therefore meet at exactly the scale at which the Resistance Networks threshold must be inferred.
+
+\newpage
+
+% ================================================================
+% FUNDING AND ACTIVITIES SUMMARY (1 page target)
+% ================================================================
+\section*{Funding and Activities Summary}
+
+\small
+\begin{tabularx}{\textwidth}{@{}p{0.37\textwidth}*{4}{>{\raggedleft\arraybackslash}X}@{}}
+\toprule
+\textbf{Activity area} & \textbf{Year 1} & \textbf{Year 2} & \textbf{Year 3} & \textbf{Total (\$k)}\\
+\midrule
+1. Universal HGT theory and model architecture & 150 & 142 & 138 & 430\\
+2. Epidemic-threshold and heterogeneity modeling & 57 & 62 & 57 & 176\\
+3. Software, computation, integration, reporting & 62 & 68 & 68 & 198\\
+Estimated indirect/administrative allowance & 20 & 16 & 0 & 36\\
+\midrule
+\textbf{Grand total} & \textbf{289} & \textbf{288} & \textbf{263} & \textbf{840}\\
+\bottomrule
+\end{tabularx}
+\normalsize
+
+\textbf{Budget status.} These values reproduce the good-faith abstract-stage total and are placeholders for the full-proposal institutional budget. The final submission should use the University of New Mexico and University of Strathclyde approved direct-cost bases, fringe rates, and applicable certified indirect-cost rates, and should be reconciled exactly with the required Wellcome Leap Cost and Schedule Summary spreadsheet.
+
+\textbf{Schedule by activity area.}
+\begin{itemize}
+\item \textbf{Months 0--6:} event definitions; derivation of HGT potential with plasmid loss and finite observation; synthetic benchmark; data interface specification; initial hierarchical $R_0$ model.
+\item \textbf{Months 7--12:} competing tail models; ecological-selection inference; detection/linkage error; posterior threshold probability; value-of-information and measurement-priority analysis.
+\item \textbf{Year 2:} fit emerging Resistance Networks data; prospective/time-forward prediction; update model interfaces with Thrusts 1--3; freeze validation protocol by month 18; end-of-year model-selection gate.
+\item \textbf{Year 3:} locked validation; intervention sensitivity and ranking; cross-context robustness analysis; software hardening; reproducible final classifier and documentation.
+\end{itemize}
+
+\textbf{Cost drivers.} The project is theory- and computation-centered. The major costs are PI effort, quantitative research support, software engineering, statistical computation, secure data handling as required by program partners, coordination, and the approximately two PI meetings per year typical of Wellcome Leap programs. No major wet-lab equipment is requested.
+
+\newpage
+
+% ================================================================
+% PROPOSAL BODY (up to 12 pages; draft content starts here)
+% ================================================================
+\section{Technical Approach}
+
+\subsection{Program-facing objective and testable hypothesis}
+
+The Resistance Networks program defines ``cases'' at the genetic level: new acquisitions of a resistance-bearing plasmid by bacterial hosts within the gut or across connected hosts. It seeks to reconstruct a basic reproductive number from events that are only partly observed and to classify whether antibiotic-amplified pARGs have epidemic-like potential. Our proposal addresses the modeling core of Thrust 1 and is built around one testable hypothesis:
+
+\begin{quote}
+\textbf{Hypothesis.} After conditioning on measurable exposure and recipient heterogeneity, the realized evolutionary opportunity for plasmid horizontal transfer belongs, over an intermediate scaling range, to a heavy-tailed universality class generated by near-cancellation of linked fitness components. Incorporating this structure as a constrained transmission-opportunity distribution will improve out-of-sample prediction of $\Rwithin$, $\Rbetween$, and the event $\RpARG>1$ relative to equally flexible light-tailed alternatives.
+\end{quote}
+
+This wording makes prediction, rather than aesthetic universality, the decisive criterion. We will reject the useful form of the hypothesis if the predicted scaling is absent or if including it fails to improve calibrated held-out prediction.
+
+\subsection{Why a top-down constraint is needed}
+
+A pARG lineage can be maintained by vertical host growth, horizontal transfer, compensatory evolution, positive selection on resistance cargo, spatial structure, ecological source--sink dynamics, and recurrent antibiotic selection \citep{harrison2012,brockhurst2022,rodriguezbeltran2021}. Existing plasmid models include combinations of bacterial birth and death, carrying capacity, plasmid loss, transfer, donor/recipient structure, fitness costs, mutation, antibiotic pharmacodynamics, and environmental turnover \citep{hernandez2021,dewan2023,zwanzig2021}. These parameters are biologically meaningful. The difficulty is transportability: values measured for one plasmid--host pair in one environment need not transfer to another pair or to an in vivo community.
+
+A top-down model does not deny microscopic mechanisms. It asks whether many of them enter the macroscopic prediction only through a smaller set of renormalized quantities. The practical analogy is not that plasmids are literally thermodynamic systems, but that coarse-grained observables can be robust to microscopic details. Our candidate observables are the tail exponent, tail weight, cutoff, selective-depletion profile, and multiscale reproductive numbers.
+
+\subsection{Evolutionary derivation of HGT potential}
+
+Consider two genetic backgrounds with additive components $(X_1,Y_1)$ and $(X_2,Y_2)$, where $X$ denotes the contribution that is moved by the horizontal element and $Y$ the chromosomal background. Define
+\[
+\Delta X=X_2-X_1,\qquad \Delta Y=Y_2-Y_1,\qquad U=\Delta X+\Delta Y.
+\]
+Selection without exchange changes genotype frequencies according to total fitness. Horizontal exchange breaks the association between $X$ and $Y$. In the two-background model, the cumulative selective value of linkage breaking can be written as a time integral of linkage covariance,
+\begin{equation}
+V=-2\int_0^{\infty}\Cov_t(X,Y)\dd t,
+\label{eq:covint}
+\end{equation}
+and, in the no-dissociation limit relevant to a tightly associated modifier,
+\begin{equation}
+V(\infty)=-\frac{\Delta X\,\Delta Y}{|\Delta X+\Delta Y|}.
+\label{eq:twotype}
+\end{equation}
+Equation~\eqref{eq:twotype} exposes the singular geometry. Large positive values arise when $U=\Delta X+\Delta Y$ is close to zero while $\Delta X\Delta Y<0$: the two backgrounds have nearly equal total fitness but opposing component advantages, so selection takes a long time to resolve the competition and the cumulative value of reassorting components becomes large.
+
+If $(\Delta X,\Delta Y)$ have a continuous joint density with nonzero mass near $U=0$, then the probability of $|U|<\epsilon$ is asymptotically proportional to $\epsilon$. Since $V$ is proportional to $1/|U|$ in the relevant region, a change of variables gives
+\begin{equation}
+\Prob(V>v)\sim \frac{C_V}{v}.
+\end{equation}
+The exponent therefore arises from codimension-one near-cancellation rather than from assuming a Pareto distribution for microscopic effects. Correlation, epistasis, plasmid loss, finite population size, and finite observation time alter the amplitude, onset, or cutoff and can destroy the asymptotic regime under identifiable conditions. Activity Area 1 is devoted to deriving these conditions for HGT rather than importing the recombination result unchanged.
+
+\subsection{Plasmid-specific extensions}
+
+The HGT mapping requires five extensions that will be treated explicitly.
+
+\textbf{1. Horizontal transfer is directional and exposure-limited.} Recombination in a sexual population is often modeled as symmetric pairing, whereas conjugation depends on donor status, recipient availability, transfer machinery, contact, and compatibility. We therefore model a donor-to-recipient event rate
+\begin{equation}
+\lambda_{ij}(t)=\beta_p\,D_i(t)\,S_j(t)\,c_{ij}(t),
+\end{equation}
+where $\beta_p$ is a plasmid-specific transfer scale, $D_i$ donor abundance, $S_j$ recipient abundance, and $c_{ij}$ an effective contact/compatibility factor. The evolutionary payoff conditional on a successful new linkage is modeled separately from the opportunity for encounter. This factorization is what allows ecological rarity to be distinguished from evolutionary rarity.
+
+\textbf{2. Plasmids can be lost or dissociate from a host lineage.} Let $\delta_p$ denote effective plasmid loss/dissociation. The time-integrated value then acquires a survival kernel,
+\begin{equation}
+V_{\delta}= -2\int_0^{\infty}e^{-\delta_p t}\Cov_t(X,Y)\dd t.
+\label{eq:discount}
+\end{equation}
+The kernel regularizes extremely long episodes and changes the tail amplitude and cutoff. We will derive the small-$|U|$ asymptotics of Eq.~\eqref{eq:discount} and determine whether the $v^{-1}$ regime persists before a loss-imposed cutoff.
+
+\textbf{3. Transfer can require a particular donor state.} Conjugation machinery may itself be costly or regulated. We will model alternative schemes in which transfer competence is encoded on the plasmid, on the host, or in an interaction term. Our preliminary simulations indicate that requiring both interacting backgrounds to possess a transfer-enabling state can alter the apparent tail. This is a useful falsification case rather than a nuisance: the theory should state which mechanistic architectures belong to the same universality class.
+
+\textbf{4. Antibiotics alter selection and ecology simultaneously.} Antibiotic treatment changes the fitness of resistance cargo, donor abundance, recipient composition, and ecological turnover. We represent treatment by a time-dependent covariate $A(t)$ that can enter both fitness components and exposure intensity. The key test is not whether antibiotics create heavy tails, but whether treatment changes $C_V$, the cutoff, and the threshold probability in the directions predicted from the inferred model.
+
+\textbf{5. Observations are finite and censored.} No biological dataset observes $t\to\infty$. We therefore derive finite-window $V(T)$ and its expected scaling crossover. This prevents the common error of fitting an asymptotic law to a regime that has not been reached.
+
+\subsection{From evolutionary opportunity to a transmission offspring distribution}
+
+To interface with $R_0$, the model must connect $\VHGT$ to counts of successful new pARG acquisitions. Let $N_e$ be the number of established descendant acquisition events arising from an index pARG lineage over the relevant scale. We model
+\begin{equation}
+N_e\mid \Lambda \sim \mathcal{P}(\Lambda),\qquad
+\log \Lambda = \alpha + \gamma_A A + \gamma_z z + g(\VHGT)+b_h+b_p,
+\label{eq:offspring}
+\end{equation}
+where $\mathcal{P}$ is initially Poisson or negative-binomial, $A$ summarizes antibiotic exposure, $z$ latent permissiveness/exposure, $b_h$ and $b_p$ host and plasmid random effects, and $g$ is a monotone link whose form will be compared empirically. The reproductive number is
+\begin{equation}
+R_0=\E[N_e\mid\text{specified susceptible network state}],
+\end{equation}
+computed from the finite, inferred mixture in Eq.~\eqref{eq:offspring}. We will never estimate $R_0$ by naively extrapolating an untruncated Pareto mean. Tail structure is used to constrain event heterogeneity; the epidemiological mean is evaluated under the finite biological model.
+
+This formulation also yields a complementary tail-risk quantity
+\begin{equation}
+\Rtail(r_*) = \Prob(N_e\ge r_*\mid\mathrm{data}),
+\end{equation}
+with $r_*=2$ or another program-agreed high-consequence event threshold. For the program's central binary decision we report instead
+\begin{equation}
+P_> = \Prob(\RpARG>1\mid\mathrm{data}).
+\end{equation}
+The distinction between $P_>$ and $\Rtail$ will be maintained throughout the analysis.
+
+\subsection{Remodelling selection in bacterial recipient networks}
+
+Recipient cells and hosts are heterogeneous. Let $z\ge0$ denote a latent multiplicative risk that includes susceptibility to acquisition and effective exposure to donors. Under hazard $z\lambda(t)$, the density among still-unacquired recipients evolves as Eq.~\eqref{eq:selection}. This has three immediate consequences.
+
+First, the average observed transfer hazard can fall through time without any change in molecular conjugation rate. Second, early acquisitions are enriched for high-$z$ backgrounds, so their identities carry information about the latent distribution. Third, interventions that reduce contact and interventions that reduce susceptibility can produce different time courses even if they generate the same initial reduction in total incidence \citep{elie2022,gomes2024}.
+
+We will consider gamma, lognormal, finite-mixture, and nonparametric spline representations for $q_0(z)$, with model complexity constrained by predictive performance. The heavy-tail variable $\VHGT$ is not identified with $z$. The former represents evolutionary value conditional on establishing a new genetic association; the latter represents ecological opportunity/permissiveness. Joint inference keeps those mechanisms distinct.
+
+\subsection{Multiscale decomposition: within gut and between hosts}
+
+Resistance Networks separates transmission into within-host and between-host components. We follow that architecture explicitly.
+
+\textbf{Within-host event.} For a focal pARG sequence or equivalence class, a within-host transmission event is a newly observed pARG--chromosome linkage that cannot be parsimoniously explained by clonal expansion of a previously observed linked host lineage, subject to a probabilistic linkage/error model. We define the state of the within-gut bacterial network by counts or relative abundances of donor lineages, candidate recipient backgrounds, antibiotic exposure, and time since treatment.
+
+\textbf{Between-host event.} A between-host event is establishment of the focal pARG in a previously negative close contact, with uncertainty over whether the transferred unit is the plasmid itself or a plasmid-bearing bacterial lineage. When sequence resolution permits, the model decomposes these possibilities. When it does not, we propagate ambiguity rather than force a single route.
+
+The two components are coupled because within-host amplification changes shedding and because the receiving host's network determines establishment. We therefore define a next-generation operator $K$ over host and bacterial-background states. $\RpARG$ is the dominant eigenvalue of $K$ under the specified baseline susceptible state. Scalar $\Rwithin$ and $\Rbetween$ are reported as interpretable component summaries, but the operator formulation avoids assuming that a simple product or sum is universally correct.
+
+\subsection{Observation model for linkage-preserving longitudinal data}\label{sec:obsmodel}
+
+Let $O_{hkt}$ denote the observed presence or abundance of pARG $p$ linked to chromosomal background $k$ in host $h$ at time $t$. The latent state $Z_{hkt}$ includes true linkage, abundance, donor/recipient status, and acquisition time. The observation model includes:
+\begin{itemize}
+\item sensitivity as a function of cell depth and abundance;
+\item false linkage or barcode collision where relevant;
+\item uncertainty in plasmid equivalence when assemblies are incomplete;
+\item interval censoring between sampling times;
+\item missing samples and variable sequencing depth;
+\item uncertainty in distinguishing transfer from clonal expansion.
+\end{itemize}
+We will expose these quantities as parameters so that Thrust 2 technology improvements can be translated directly into predicted gains in $R_0$ precision.
+
+
+\subsection{Testing against genomic signatures from program cohorts}
+\label{sec:genomic_validation}
+
+The abstract review specifically requested a test against genomic signatures generated by the empirical cohorts. We will therefore treat genomic information as a formal source of prediction rather than simply as annotation. For each observed or candidate pARG--host pairing, let $G_{ph}$ denote a feature vector constructed from the program's standardized genomic outputs. At minimum, $G_{ph}$ will encode the complete pARG/plasmid identity and backbone, resistance-gene and mobile-element context, bacterial chromosomal background, and program-defined markers of plasmid mobility, host range, incompatibility/protection, and other sequence-derived compatibility features. The final feature dictionary will be frozen jointly with the sequencing/bioinformatics teams so that the model never depends on laboratory-specific ad hoc annotations.
+
+We will map these signatures to a prior probability of successful host entry or establishment,
+\begin{equation}
+\operatorname{logit}\,\pi_{ph}=\theta_0+\theta^{\mathsf T}G_{ph}+u_p+v_h,
+\label{eq:genomicscore}
+\end{equation}
+where $u_p$ and $v_h$ are plasmid- and host-background effects. The purpose of Eq.~\eqref{eq:genomicscore} is not to assert that sequence alone determines transmission. It supplies a sequence-informed component of recipient permissiveness that is then updated by longitudinal observations. Published host-prediction and plasmid-host-range approaches provide starting benchmarks \citep{aytanaktug2022,ono2026}; program data will determine which signatures transport across sites.
+
+Three prospective tests will be prespecified. \textbf{Host-range prediction:} given the pARG sequence and the set of Enterobacterales backgrounds present before treatment, rank which previously negative backgrounds acquire the pARG after antibiotic exposure. \textbf{Protected-state prediction:} test whether backgrounds predicted to be nonpermissive or protected remain negative at the expected rate. \textbf{Transfer-count prediction:} test whether the genomic score improves prediction of the number of novel pARG--chromosome linkages beyond exposure, abundance, and site effects. Performance will be evaluated out of sample and compared with models in which genomic features are omitted, permuted, or replaced by coarse taxonomic labels.
+
+This design creates an important falsification route. If the heavy-tail component improves prediction only because it absorbs systematic sequence differences, then adding $G_{ph}$ should substantially attenuate that benefit. Conversely, if heavy-tailed evolutionary opportunity captures information not reducible to genomic compatibility, its predictive contribution should persist after genomic signatures are included. Thus the program's genomic measurements provide a direct way to separate the proposed coarse-grained law from ordinary sequence-specific mechanism.
+
+\subsection{Independent validation with wastewater and isolate surveillance}
+\label{sec:wastewater_validation}
+
+The cohort data used to estimate $\Rwithin$ and $\Rbetween$ cannot by themselves provide a fully independent test of the resulting threshold call. Resistance Networks explicitly identifies longitudinal wastewater or other community surveillance as an independent check: a pARG classified above threshold should, all else equal, generate sustained growth in community carriage and therefore an increasing community signal \citep{wellcome2026}. We will operationalize that statement before examining validation outcomes.
+
+For each focal pARG $p$ and catchment $c$, let $W_{pct}$ denote its measured wastewater abundance at time $t$, normalized by the program-agreed fecal/Enterobacterales denominator and accompanied by an assay-specific detection limit. We will fit a state-space trend model,
+\begin{equation}
+\log W_{pct}=a_{pc}+g_{pc}t+s_c(t)+\epsilon_{pct},
+\label{eq:wastewater}
+\end{equation}
+where $g_{pc}$ is the sustained pARG trend, $s_c(t)$ captures shared seasonal or catchment effects, and $\epsilon_{pct}$ represents measurement error and censoring. The primary independent validation question is directional and prespecified: do pARGs called $\RpARG>1$ from cohort data have $g_{pc}>0$ more often than pARGs called below threshold? We will not force a one-to-one algebraic conversion from wastewater slope to $R_0$, because shedding, dilution, sewer hydraulics, and sampling frequency affect the observed signal. Instead, wastewater supplies an external, biologically distinct challenge to the sign and rank ordering of threshold predictions. Existing studies demonstrate that plasmid-host networks and pARG signals can be resolved in wastewater and connected to other ecological compartments \citep{matlock2023,risely2024,mao2025}.
+
+Where matched clinical isolates are available, we will add a second external check: whether pARGs predicted to be supercritical in commensal networks appear subsequently or increasingly in clinical Enterobacterales isolates from the same catchment. Sequence identity will use the program's shared plasmid-linkage criteria rather than resistance-gene identity alone, preventing independent acquisition of the same ARG from being counted as validation. Wastewater and clinical-isolate outcomes will remain locked away from model fitting until the corresponding cohort prediction has been timestamped and versioned.
+
+\subsection{Standardized cross-program data and analysis contract}
+\label{sec:core}
+
+The second abstract-review request concerned standardization and the possibility of core functions. Our proposed core contribution is modeling and analysis. Within the first 90 days we will circulate a \emph{Resistance Networks Common Event Schema} (RNCES) for program approval. The schema will contain, at minimum: site and de-identified participant identifiers; sampling time relative to antibiotic exposure; specimen and compartment; pARG identifier and sequence version; ARG--mobile-element--plasmid--host linkage; host chromosomal background; abundance and susceptible-cell denominator; linkage-confidence score; assay detection limit; plasmid loss/persistence information; household/contact relationship; environmental or wastewater catchment identifier; and intervention state. Every derived transmission event will carry a posterior event probability rather than an irrevocable binary label.
+
+The corresponding \emph{Model Input/Output Contract} will define units, missing-data codes, uncertainty fields, reference levels, event definitions, and versioning. A canonical synthetic dataset will exercise edge cases: no events, clonal expansion without HGT, multiple candidate donors, low-frequency new linkage, plasmid loss, a censored wastewater detection, and a true between-host transmission. Each software release must reproduce prespecified outputs on this benchmark before accepting new program data.
+
+The reference engine will be implemented in Julia, with language-neutral exchange through simple tabular and JSON/Arrow-compatible files so that Python/R-based program teams are not required to adopt Julia. Reproducible containers, locked dependency manifests, automated tests, and versioned parameter dictionaries will be supplied where permitted. Model outputs will include both full posterior objects for approved analysis partners and compact standardized summaries for downstream teams.
+
+\textbf{Program measurement quality gates.} The analysis contract will carry, rather than erase, the program's measurement standards. Where applicable, Thrust~1B/1C parameter estimates will enter with their stated uncertainty toward the program target of $\pm30\%$ precision for individual parameters and $\pm50\%$ precision for $R_{0,\mathrm{within}}$ and $R_{0,\mathrm{between}}$ estimates. For between-host detection, the schema will record whether the program target of detecting a focal pARG at a frequency of at least 1 in 10,000 Enterobacterales cells is met. Thrust~2 linkage outputs will carry concordance and throughput fields, including the program benchmarks of at least 95\% linkage concordance with complete long-read sequencing and approximately 1,000 Enterobacterales cells per fecal sample \citep{wellcome2026}. These are upstream assay responsibilities, not claims that our modeling team itself will generate those measurements; our responsibility is to propagate shortfalls transparently into prediction uncertainty and to prevent data below a quality threshold from being treated as equivalent to benchmark-grade measurements.
+
+\textbf{Sharing and limitations.} Our team will share model code, synthetic data, data dictionaries, derived event tables, fitted parameter summaries, and simulation tools across the program subject to Wellcome Leap and institutional terms. We do not generate biological samples, isolates, strains, or plasmids and therefore cannot independently redistribute them. When program partners provide such materials or sequence data, ownership, material-transfer restrictions, and data/sample sovereignty remain with the originating teams; we will record those restrictions in the data catalogue and will not export restricted data outside authorized environments. For human cohort data, the default will be analysis on de-identified or coded records with the minimum participant-level information needed to reconstruct transmission; privacy-preserving aggregated likelihoods will be supported when raw record sharing is not permitted. This structure lets the model be shared more freely than the underlying data.
+
+\subsection{Inference strategy}
+
+The full model is hierarchical and partially mechanistic. We will fit it in stages that preserve identifiability.
+
+\textbf{Stage 1: event reconstruction.} Infer posterior probabilities of new pARG--host acquisition events from longitudinal linkage data.
+
+\textbf{Stage 2: ecological heterogeneity.} Fit the time-varying recipient-risk model to event timing, donor abundance, and exposure covariates, estimating the selection/depletion profile.
+
+\textbf{Stage 3: evolutionary opportunity.} Conditional on reconstructed events, fit competing distributions for event-specific $\VHGT$ or its observable proxy. Candidate models include the theory-constrained truncated Pareto with exponent initially fixed near 1, a free-exponent Pareto, lognormal, Weibull, gamma, exponential, and finite mixtures.
+
+\textbf{Stage 4: next-generation inference.} Propagate the fitted event process into $K$, $\Rwithin$, $\Rbetween$, and $\RpARG$, integrating uncertainty.
+
+\textbf{Stage 5: prediction.} Freeze model parameters or update only according to prespecified rules and predict future acquisition events and threshold status in held-out host/plasmid/time strata.
+
+We will use Bayesian inference where posterior uncertainty is scientifically essential and likelihood-based or simulation-based approximations where computationally more efficient. The reference implementation will be in Julia, with stable data interchange formats and reproducible scripts.
+
+\section{Validation, Metrics, and Falsification}
+
+\subsection{Primary endpoint: threshold classification}
+
+The primary program-facing endpoint is binary classification of whether $\RpARG>1$. For each held-out unit we will produce $P_>=\Prob(\RpARG>1\mid D_{\mathrm{train}})$ and classify using a threshold fixed before evaluation. The principal score is balanced accuracy,
+\begin{equation}
+\mathrm{BA}=\frac{1}{2}(\mathrm{sensitivity}+\mathrm{specificity}),
+\end{equation}
+with the program target of at least 80\% for the coupled $R_0$ classification at each of the five focal sites. We will also report confidence intervals, sensitivity, specificity, positive and negative predictive values, Brier score, calibration slope/intercept, ROC AUC, and precision--recall AUC. Balanced accuracy is primary because the numbers of supercritical and subcritical pARGs need not be equal. Cohort-derived threshold calls will be timestamped before wastewater/isolate outcomes are examined, allowing an explicitly independent validation score.
+
+\subsection{Prediction splits designed to test transportability}
+
+Random row-wise cross-validation can overstate generalization when repeated measurements come from the same plasmid or host. We will therefore prioritize blocked splits:
+\begin{enumerate}
+\item \textbf{Time-forward:} train on early samples, predict later transmission.
+\item \textbf{Leave-plasmid-out:} predict pARGs absent from training.
+\item \textbf{Leave-host-context-out:} predict new recipient communities or antibiotic regimens.
+\item \textbf{Between-site:} leave-one-site-out validation across the five focal sites, with no site-specific recalibration in the primary transportability analysis.
+\end{enumerate}
+The strongest evidence for universality is improved prediction under these distribution shifts, not merely better in-sample fit.
+
+\subsection{Competing models and ablation tests}
+
+We will compare six prespecified architectures:
+\begin{itemize}
+\item \textbf{M0:} conventional multiscale model with measured covariates and simple random effects;
+\item \textbf{M1:} M0 plus remodelling selection in latent susceptibility/exposure;
+\item \textbf{M2:} M0 plus sequence-derived genomic compatibility/host-range signatures;
+\item \textbf{M3:} M0 plus heavy-tailed evolutionary opportunity;
+\item \textbf{M4:} genomic signatures plus heavy-tail structure, but without remodelling selection;
+\item \textbf{M5:} full model combining genomic signatures, remodelling selection, and theory-constrained tail structure.
+\end{itemize}
+Within the heavy-tail models, the theory-constrained tail will be compared with free-exponent and light-tailed alternatives. We will additionally permute genomic signatures within site and plasmid strata to test whether apparent sequence effects reflect taxonomy or batch. We will claim predictive value for the universality theory only if it improves held-out scoring or reduces data requirements at equivalent accuracy after genomic information has been accounted for.
+
+\subsection{Direct falsification of scaling claims}
+
+For a complementary cumulative tail $\Prob(V>v)\propto v^{-\alpha}$, the theory predicts $\alpha\approx1$ over a finite range. We will estimate the lower cutoff, upper truncation, and exponent jointly, quantify uncertainty, and compare tail models using likelihood-based and predictive criteria. We will not infer a power law from a straight-looking log--log plot alone. Diagnostics will include probability integral transforms, posterior predictive checks, stability of the fitted exponent to the lower cutoff, and simulation-based false-positive rates under lognormal and Weibull alternatives.
+
+The spatial and temporal scaling conjectures in the abstract---approximately $\Prob(X>x)\propto x^{-2}$ and $\Prob(T>t)\propto t^{-1}$---will be treated as secondary hypotheses unless the derivation can be completed for the specific network geometry before model freeze. This avoids overclaiming exponents that may depend on dimensionality, contact topology, or observation definitions.
+
+\section{Intervention Analysis}
+
+\subsection{Connecting model components to actionable levers}
+
+The fitted next-generation operator permits local and global sensitivity analysis. Candidate intervention parameters include:
+\begin{itemize}
+\item conjugation/contact scale $\beta_p$;
+\item donor abundance and antibiotic-driven amplification;
+\item size and composition of the permissive recipient pool;
+\item plasmid loss/segregation $\delta_p$;
+\item shedding or environmental survival affecting between-host exposure;
+\item probability of establishment after arrival in a new host;
+\item duration and timing of antibiotic selection.
+\end{itemize}
+For each candidate intervention $j$ we compute the elasticity
+\begin{equation}
+E_j=\frac{\partial\log \RpARG}{\partial\log\theta_j}
+\end{equation}
+and the posterior probability that a feasible perturbation pushes $\RpARG$ below 1. This provides a common scale for comparing interventions that act at different biological levels.
+
+\subsection{Tail-sensitive intervention criterion}
+
+An intervention can reduce mean transmission while leaving rare high-consequence episodes relatively intact, or vice versa. We will therefore report both $\Delta \RpARG$ and the change in high-quantile/tail-risk measures. A candidate intervention is especially attractive when it reduces $\RpARG$ and shortens the upper cutoff of the offspring distribution, because such an intervention suppresses both average amplification and extreme episodes.
+
+\subsection{Starting intervention and adaptability}
+
+Although this proposal is computational, we will begin with a concrete in silico intervention aligned with Thrust 3: reduction of effective conjugation by a specified multiplicative factor. This choice is directly represented in $\beta_p$ and can be compared with the program's illustrative target of a large reduction in conjugation rate. As Thrust 1 data identify the dominant drivers, the same framework can be re-targeted to donor amplification, recipient protection, plasmid loss, or between-host transmission without changing the validation architecture.
+
+\section{Milestones, Deliverables, and Go/No-Go Criteria}
+
+\textbf{Month 1. Program harmonization kickoff.} Agree with Thrust 1B/1C/2 teams on the operational definition of a new pARG transmission event, the susceptible-cell denominator, plasmid identity criteria, minimum genomic/linkage metadata, antibiotic-exposure time axis, and the interface to Thrust 3. \emph{Deliverable:} event-definition and parameter dictionary v0.1.
+
+\textbf{Month 3. Common schema and validation plan frozen.} Release RNCES v1.0, Model Input/Output Contract v1.0, synthetic benchmark data, initial genomic-feature dictionary, wastewater validation endpoint, and prespecified scoring rules. \emph{Gate:} at least one partner-generated mock dataset can be ingested end-to-end without manual recoding.
+
+\textbf{Month 6. Theory and software benchmark.} Complete the first plasmid-specific derivation with finite-time/loss cutoffs; release Julia reference implementation; pass simulation-recovery tests for $\Rwithin$, $\Rbetween$, linkage error, and remodelling selection. \emph{Gate:} nominal 95\% intervals achieve 90--98\% coverage in prespecified synthetic regimes and false-positive heavy-tail calls remain below 5\% under light-tailed generators.
+
+\textbf{Month 9. Genomic-signature module.} Implement Eq.~\eqref{eq:genomicscore}, benchmarking host-range/compatibility prediction with existing genomic data and the first compatible program data. \emph{Deliverable:} locked feature-processing pipeline and ablation report separating sequence-specific prediction from coarse-grained tail effects.
+
+\textbf{Month 12. Year-one integration demonstration.} Complete an end-to-end dry run from a program-standard pARG--host linkage table through event reconstruction, $R_0$ inference, uncertainty propagation, genomic prediction, and intervention sensitivity; complete one cross-team data/model handoff rehearsal. \emph{Deliverables:} measurement-priority report; RNCES v1.1; reproducible analysis report. \emph{Gate:} no unresolved schema ambiguity prevents pooling equivalent measurements across participating sites.
+
+\textbf{Months 13--18. First prospective cohort predictions.} Fit early longitudinal data while preserving later time points for prediction; quantify parameter identifiability and measurement precision; issue timestamped predictions of new host associations and $R_0$ status. \emph{Gate:} model produces finite, calibrated posterior threshold probabilities for at least 90\% of pARG/site combinations meeting the program's minimum data-quality requirements.
+
+\textbf{Months 19--24. Cross-site challenge and model-selection gate.} Conduct leave-one-site-out analyses across available focal sites; compare full, sequence-only, light-tailed, and no-remodelling models. Freeze the model form for final validation. \emph{Continuation gate:} at least one of the following must hold: (i) the theory-constrained model improves held-out threshold prediction or calibration over baselines; or (ii) a reproducible alternative regime identified by falsification materially improves prediction. If neither occurs, the universality component is stopped and effort is redirected to the best-performing heterogeneity-aware $R_0$ model.
+
+\textbf{Months 25--30. Independent community validation.} Score timestamped cohort-derived threshold predictions against withheld longitudinal wastewater and, where available, matched clinical-isolate trends using the prespecified rule in Eq.~\eqref{eq:wastewater}. \emph{Deliverable:} independent validation report distinguishing model failure, assay disagreement, and catchment mismatch.
+
+\textbf{Months 31--36. Final program test and intervention map.} Achieve the locked program-facing evaluation of $\RpARG>1$, targeting at least 80\% balanced predictive accuracy at each of five sites; finalize intervention elasticities and uncertainty; harden software and documentation; archive synthetic benchmarks, model versions, and sharable derived outputs. \emph{Deliverables:} final classifier, intervention-ranking tool, modeling-core package, and reproducible final report.
+
+\section{Risks and Alternative Strategies}
+
+\textbf{Risk 1: the predicted $v^{-1}$ tail is not present.} This is scientifically informative and does not terminate the project. We will use the same inference framework to identify the best-supported alternative distribution and determine which plasmid/host architectures lie outside the proposed universality class. The primary $R_0$ estimator remains intact.
+
+\textbf{Risk 2: apparent heavy tails are generated by unmodeled ecological mixing.} The joint model is designed specifically to address this. We will test whether latent ecological heterogeneity alone explains the observed tail and use replicated host/plasmid contexts, timing information, and covariates to separate encounter variation from conditional evolutionary payoff.
+
+\textbf{Risk 3: too few independent extreme events.} We will avoid unstable free-exponent estimation, use theory-informed priors only when justified, pool hierarchically across exchangeable contexts, and report upper bounds or cutoff uncertainty rather than force a tail estimate.
+
+\textbf{Risk 4: $R_0$ is not identifiable from available observation frequency.} We will perform structural and practical identifiability analyses on the exact sampling design. If only a composite next-generation quantity is identifiable, we will report that quantity rather than over-decompose $\Rwithin$ and $\Rbetween$. Value-of-information calculations will identify which additional samples resolve the ambiguity.
+
+\textbf{Risk 5: transfer is confounded with migration of plasmid-bearing clones.} Sequence-aware latent states will represent both routes. Where data cannot distinguish them, the model will carry route uncertainty forward. This is preferable to defining every appearance of a pARG in a new host as plasmid transfer.
+
+\textbf{Risk 6: program data arrive later or in a different format than anticipated.} Year 1 is deliberately self-contained using synthetic benchmarks and available published datasets. Data adapters will be modular. The project's theory and inference components therefore remain productive while program integration evolves.
+
+\section{Program Interfaces and Collaborative Model}\label{sec:interfaces}
+
+Resistance Networks is deliberately organized as an integrated program. Our proposal assumes that cohort, sequencing, surveillance, and intervention teams will be selected independently and that data definitions must therefore be negotiated early and then held stable enough for prospective validation.
+
+\textbf{Thrust 1B cohort performers.} We require longitudinal pARG--plasmid--chromosome linkages before, during, and at least one month after antibiotic exposure, susceptible/protected population denominators, abundance estimates, loss/persistence information, and assay-level uncertainty. We return posterior event probabilities, $\Rwithin$, parameter sensitivity, and value-of-information calculations. The genomic-signature module ranks candidate future host acquisitions so that later samples provide a prospective challenge rather than merely a retrospective fit.
+
+\textbf{Thrust 1C cohort and surveillance performers.} We accept index/contact timelines, pARG identity, contact structure, shedding/environmental measures, and previously negative recipient status to infer $\Rbetween$. Community wastewater and matched clinical-isolate measurements from the same catchments are held out from fitting whenever possible and used as independent tests of the cohort-derived overall threshold call.
+
+\textbf{Thrust 2 technology performers and any sequencing/bioinformatics core.} We translate linkage concordance, cells per sample, detection sensitivity, and rare-state error into downstream uncertainty in event counts and $R_0$. The model will consume the same RNCES representation whether the upstream assay is isolate-based long-read sequencing, a program single-cell workflow, or another validated linkage-preserving method. We will provide simulation-based power calculations showing how linkage error and cell depth affect the probability of correctly classifying $R_0>1$.
+
+\textbf{Thrust 3 intervention performers.} We provide parameter elasticities, predicted threshold shifts, and uncertainty ranges to identify the most decision-relevant perturbations. Our initial intervention target is conjugation opportunity because it directly couples the evolutionary and epidemiological parts of the model; however, the framework can re-rank donor amplification, recipient protection, plasmid loss, shedding, or between-host establishment as data identify a different dominant driver.
+
+\textbf{Program modeling core.} If Wellcome Leap chooses a centralized modeling function, this team can provide it within the proposed analytic scope: common event definitions, model-input/output standards, reference code, benchmark simulations, cross-site model comparison, prospective prediction registry, and integrated uncertainty propagation. We will not duplicate wet-lab sequencing or sample-processing functions. This division keeps responsibility clear: measurement teams own assay validity and sample provenance; the modeling core owns the mathematical mapping from harmonized measurements to $R_0$, predictions, and intervention priorities.
+
+\textbf{Data, sample, strain, plasmid, and model sharing.} Models, source code, synthetic benchmarks, schemas, and nonrestricted derived summaries will be shared program-wide on a version-controlled repository designated by Wellcome Leap. Biological materials remain with the generating teams and will be exchanged only through program-approved material-transfer and biosafety processes; our analyses will retain source identifiers sufficient to reproduce provenance without requiring us to become a biological-material repository. Human cohort data will remain subject to originating consent, governance, and data-use agreements. The model will support federated or site-local evaluation where participant-level data cannot be pooled. Any limitations to sharing will be documented at ingestion rather than discovered at publication time.
+
+\textbf{Governance.} During year 1 we propose a short monthly modeling/data harmonization call with relevant teams, moving to bimonthly once the schema is stable, plus Wellcome Leap PI meetings. Any change to an event definition, reference plasmid identity rule, or validation endpoint after model freeze will be versioned and its effect on prior results documented. This prevents silent analytical drift as assays improve during the three-year program.
+
+\section{Expected Impact}
+
+The conventional route to predicting pARG spread is to measure more mechanisms and estimate more parameters. Resistance Networks creates an opportunity for a complementary route: measure the events that matter, then ask whether the statistics of those events collapse onto a smaller set of robust laws. If the heavy-tail hypothesis is correct, rare transfer episodes are not arbitrary anomalies but predictable members of a scaling distribution whose amplitude and cutoff can be calibrated. If remodelling selection is important, declining transmission hazard is not merely evidence that a plasmid is becoming less transmissible; it may reflect selective removal of the most permissive backgrounds. Both insights alter how early data are extrapolated.
+
+\textbf{A complementary near-future evolutionary forecasting layer.} The universal laws developed here are designed to identify which pARG systems present disproportionate risk, but they need not resolve every contingency of the subsequent plasmid--bacterium coevolutionary trajectory. Where the tail-risk model flags a dangerous system, a higher-resolution mechanistic layer could be activated to predict which plasmid--host combinations are most likely to dominate next, how rapidly compensatory evolution may stabilize them, and which intervention is likely to buy the most time. Gerrish and Sniegowski developed a general forecasting formalism that assimilates serial measurements of fitness or fitness-related phenotypes, infers the underlying mutational input, and propagates the population's full fitness distribution forward without prespecifying either a fitness landscape or the form of the distribution of mutational effects \citep{gerrish2012}. Applied to coupled plasmid--bacterial states, it could forecast host fitness, plasmid fitness, conjugation efficiency, resistance phenotype, and their covariances, thereby anticipating the emergence of unusually permissive plasmid--host combinations and comparing the near-term effects of conjugation inhibitors, altered antibiotic schedules, competitive exclusion, or interventions that increase plasmid loss.
+
+This would create a natural two-resolution forecasting architecture. The proposed non-mechanistic framework would provide robust surveillance and triage across heterogeneous systems, locating the rare cases in which detailed prediction is both warranted and decision-relevant; the mechanistic model would then provide an evolving local ``nowcast,'' repeatedly assimilating new measurements and updating short-horizon forecasts. Recent work extends the original formalism toward precisely this Bayesian, data-assimilative strategy, centering prediction on fitness and phenotype rather than requiring an infeasibly detailed reconstruction of sequence space \citep{gerrish2026forecasting}. The two approaches are therefore complementary rather than competing: universality supplies tail probabilities, robust priors, and out-of-distribution warnings, while mechanistic forecasting supplies conditional detail when an intervention must be chosen. As first author of both the original forecasting formalism and its current generalization, Gerrish is particularly well positioned to couple these layers into an operational system capable not only of recognizing pARG outbreak risk, but of anticipating---and potentially redirecting---its next move.
+
+The practical outcome is a forecasting system that uses mechanistic information where it is identifiable, universal structure where it is supported, and explicit uncertainty where neither is sufficient. Success would provide a leading indicator of pARG epidemic potential before conventional resistance prevalence crosses clinical action thresholds, and would point directly to the intervention lever most likely to drive $\RpARG$ below 1.
+
+\newpage
+
+% ================================================================
+% SUPPORTING SECTIONS (up to 6 pages)
+% ================================================================
+\section*{Supporting Sections}
+
+\subsection*{Key Personnel, Facilities, and Resources}
+
+\textbf{Philip J. Gerrish, Principal Investigator.} Gerrish is a theoretical evolutionary biologist whose work spans adaptation in asexual populations, clonal interference, the evolution of recombination, and forecasting evolutionary change. His contributions include early theory and experiments on competition among beneficial mutations and work on the predictability of evolving populations \citep{gerrish1998,devisser1999,gerrish2012}. He will lead Activity Area 1, mathematical integration of HGT potential with the multiscale transmission model, simulation design, and program-facing synthesis. He will also supervise the reference Julia implementation and ensure that the universal claims are accompanied by explicit conditions and falsification tests.
+
+\textbf{M. Gabriela M. Gomes, Co-Principal Investigator.} Gomes is a mathematical epidemiologist with long-standing contributions to models of individual variation in susceptibility, exposure, infection, reinfection, vaccination, and epidemic thresholds \citep{gomes2004,gomes2022,gomes2024}. Her recent work formalizes ``remodelling selection,'' in which epidemic spread changes the composition of the remaining susceptible population and thereby changes future hazard. She will lead Activity Area 2, latent-heterogeneity inference, next-generation operator construction, threshold interpretation, and validation design.
+
+\textbf{Complementarity.} Gerrish's framework describes how selection changes genetic associations and creates occasional large benefits of horizontal escape. Gomes's framework describes how transmission selectively changes the ecological population available for future events. pARG dynamics require both. Neither PI's component is treated as a bolt-on to the other; the joint model is built around the interaction of evolutionary and ecological selection.
+
+\textbf{Facilities and computing.} The work is computational and requires standard high-performance numerical computing, secure storage for program data as required, version-controlled software development, and videoconference/collaboration facilities. The University of New Mexico and University of Strathclyde provide institutional research environments appropriate for mathematical modeling and computation. No specialized wet-lab facility is required by this proposal. Any restricted program data will be handled according to the applicable data-use agreements and institutional requirements.
+
+\subsection*{Commercialization and Partner Strategy}
+
+The primary outputs are a predictive modeling framework, software, and decision metrics rather than a therapeutic product. Our default strategy is to maximize program utility through transparent, well-documented scientific software and reproducible model specifications, subject to Wellcome Leap and institutional IP/data terms. Commercial value could arise in three downstream forms: (i) decision-support tools for clinical or public-health resistance surveillance; (ii) assay-design and sampling optimization for companies developing linkage-preserving microbial genomics; and (iii) model-guided prioritization of conjugation inhibitors, microbiome interventions, or infection-control approaches.
+
+We will not prematurely lock the framework to a proprietary platform. During years 2--3 we will identify components whose validation justifies translation and will consult the relevant institutional technology-transfer offices and Wellcome Leap on licensing or partnership only where doing so accelerates deployment. Program performers generating sequencing technology or interventions are natural partners because our value-of-information and elasticity analyses can quantify how their technical improvements affect the probability of correct $R_0$ classification.
+
+\subsection*{Detailed Project Activity, Schedule, and Budget}
+
+\textbf{Activity Area 1: Universal HGT theory and model architecture.} Lead: Gerrish. Tasks: derive plasmid-specific HGT potential with directional transfer, loss/dissociation, finite-time observation, and heterogeneous backgrounds; establish universality conditions and counterexamples; build Wright--Fisher and deterministic benchmarks; define event-size, duration, and spatial diagnostics; integrate the resulting opportunity distribution into the transmission model. Deliverables: derivation note, simulation benchmark, reusable Julia modules, tail-falsification protocol.
+
+\textbf{Activity Area 2: Threshold modeling.} Lead: Gomes. Tasks: construct selective-depletion model for recipient permissiveness/exposure; infer latent-risk distributions; define next-generation operator and within/between components; construct observation model for longitudinal linkage data; derive posterior threshold probabilities; design calibration and prediction metrics. Deliverables: hierarchical inference module, identifiability analysis, $R_0$ decomposition, validation protocol.
+
+\textbf{Activity Area 3: Empirical validation, modeling core, software, and integration.} Joint leads. Tasks: genomic-signature benchmarking; standardized data adapters; prospective prediction registry; wastewater and isolate validation; software engineering; reproducible pipelines; computational benchmarking; secure data handling; cross-site integration; meetings; dissemination; and final validation release. Deliverables: RNCES and Model Input/Output Contract; documented codebase; synthetic reference datasets; containerized/reproducible workflows as permitted; genomic-ablation report; measurement-priority reports; independent wastewater and isolate validation report; intervention-ranking reports; and final classifier.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{@{}p{0.34\textwidth}*{4}{>{\raggedleft\arraybackslash}X}@{}}
+\toprule
+\textbf{Cost category} & \textbf{Y1} & \textbf{Y2} & \textbf{Y3} & \textbf{Total (\$k)}\\
+\midrule
+Philip Gerrish salary and fringe & 130 & 130 & 130 & 390\\
+Universality-class/HGT analysis & 20 & 12 & 8 & 40\\
+Gabriela Gomes effort and fringe & 32 & 32 & 32 & 96\\
+Bayesian inference/statistical support & 25 & 30 & 25 & 80\\
+Research software engineering & 40 & 40 & 40 & 120\\
+Cloud compute, security, storage & 12 & 16 & 16 & 44\\
+Coordination, travel, dissemination & 10 & 12 & 12 & 34\\
+Estimated indirect/administrative allowance & 20 & 16 & 0 & 36\\
+\midrule
+\textbf{Total} & \textbf{289} & \textbf{288} & \textbf{263} & \textbf{840}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Important full-proposal budget action.} The table above is a scientific planning draft carried forward from the abstract. Before submission it must be replaced or reconciled line-for-line with institutional calculations from the University of New Mexico and University of Strathclyde, including the appropriate subaward/partner arrangement, fringe, and certified indirect-cost treatment. No budget claim in this narrative should override the final institutional spreadsheet.
+
+\subsection*{Response to Abstract Feedback}
+
+The Program Director identified two specific additions for the full proposal. Both are now incorporated as core deliverables.
+
+\begin{enumerate}
+\item \textbf{Requested: test the model against genomic signatures and other empirical program datasets, including wastewater frequencies.}\\
+\textbf{Response.} Sections~\ref{sec:obsmodel} and \ref{sec:genomic_validation} specify how longitudinal single-cell/linkage-preserving cohort measurements and sequence-derived genomic signatures enter the model and how they are tested prospectively. Section~\ref{sec:wastewater_validation} prespecifies a separate, withheld validation using longitudinal wastewater trends and matched clinical isolates where available. The key design principle is that cohort data build the model, whereas wastewater/isolate surveillance challenges the threshold prediction without refitting.
+
+\item \textbf{Requested: plan for standardized protocols and cross-team sharing of data, samples, strains, plasmids, and models; consider core functions.}\\
+\textbf{Response.} Section~\ref{sec:core} defines a program-level common event schema, model-input/output contract, synthetic reference dataset, reproducibility tests, and explicit sharing/governance rules. Section~\ref{sec:interfaces} specifies interfaces to Thrusts~1B, 1C, 2, and 3 and offers this team as a program modeling core while avoiding duplication of wet-lab single-cell isolation or long-read sequencing cores. Because this modeling team does not generate biological materials, samples/strains/plasmids remain under the provenance, MTAs, biosafety requirements, and data/sample-sovereignty rules of the originating teams; our models and standardized derived outputs are designed for broad program sharing.
+\end{enumerate}
+
+\newpage
+\small
+\bibliographystyle{unsrtnat}
+\bibliography{resistance_networks_full_proposal_v2}
+
+\end{document}
