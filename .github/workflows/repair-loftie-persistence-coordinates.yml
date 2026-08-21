@@ -1,0 +1,30 @@
+name: Repair Loftie persistence coordinates
+
+on:
+  push:
+    branches:
+      - codex/loftie-eaton-preliminary-analysis
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/loftie-eaton-preliminary-analysis
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: python scripts/repair_loftie_persistence_coordinates.py
+      - run: |
+          if ! git diff --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add -- resistance_networks_full_proposal_v2.tex
+            git commit -m 'Repair persistence CCDF coordinates'
+            git push
+          fi
