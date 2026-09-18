@@ -1,0 +1,12 @@
+name: ChatGPT PDF helper test
+on:
+  push:
+    paths:
+      - '.github/workflows/_chatgpt_pdf_helper.yml'
+permissions:
+  contents: write
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "helper ready"
