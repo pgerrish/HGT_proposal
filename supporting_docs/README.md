@@ -1,6 +1,6 @@
 # Supporting documents
 
-## [Philip J. Gerrish - Research website](https://pgerrish.github.io/)
+## [Philip J. Gerrish - Research website](https://unm.edu/~pgerrish)
 
 Supporting materials for the proposal:
 

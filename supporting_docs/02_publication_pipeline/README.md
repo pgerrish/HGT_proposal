@@ -1,5 +1,7 @@
 # Referenced articles in the publication pipeline
 
+## [Philip J. Gerrish - Research website](https://unm.edu/~pgerrish)
+
 ## Companion paper series: natural selection and recombination
 
 The three companion papers below share one Supplementary Information document.
